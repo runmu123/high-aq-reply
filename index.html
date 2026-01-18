@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高情商回复器 - 本地prompt生成版</title>
+    <style>
+        :root {
+            --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding: 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .select-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: "▼";
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            appearance: none;
+            background: white;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-muted);
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .prompt-section {
+            display: none;
+        }
+
+        .prompt-display {
+            background: #f7f9fc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-top: 16px;
+            position: relative;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .prompt-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .copy-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .history-role-scene {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 4px 0;
+        }
+
+        .history-input {
+            font-size: 14px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: var(--error-color);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            margin: 16px 0;
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .prompt-length {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .history-input {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>高情商回复器 - 本地prompt生成版</h1>
+        </header>
+
+        <div class="section">
+            <div class="form-row">
+                <div class="select-wrapper">
+                    <select id="roleSelect">
+                        <option value="">选择角色</option>
+                        <option value="朋友">朋友</option>
+                        <option value="家人">家人</option>
+                        <option value="暧昧对象">暧昧对象</option>
+                        <option value="相亲对象">相亲对象</option>
+                        <option value="男朋友">男朋友</option>
+                    </select>
+                </div>
+                <div class="select-wrapper">
+                    <select id="sceneSelect">
+                        <option value="">选择场景</option>
+                        <option value="道歉">道歉</option>
+                        <option value="表白">表白</option>
+                        <option value="拒绝">拒绝</option>
+                        <option value="安慰">安慰</option>
+                        <option value="日常">日常</option>
+                        <option value="约会">约会</option>
+                        <option value="聊天">聊天</option>
+                    </select>
+                </div>
+            </div>
+
+            <textarea id="dialogueInput" placeholder="请输入需要回复的对话内容，例如：今天上班好累啊..."></textarea>
+
+            <button id="generateBtn" class="btn btn-primary generate-btn">
+                🔮 生成Prompt
+            </button>
+
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="section prompt-section" id="promptSection">
+            <div class="prompt-header">
+                <div class="section-title">📋 生成的Prompt</div>
+                <div class="prompt-length" id="promptLength">0 字符</div>
+            </div>
+            
+            <div class="prompt-display" id="promptDisplay"></div>
+            
+            <div class="prompt-actions">
+                <button id="copyPromptBtn" class="btn btn-success copy-btn">
+                    📋 复制Prompt
+                </button>
+                <button id="copySystemOnlyBtn" class="btn btn-secondary copy-btn">
+                    📄 仅复制系统提示
+                </button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="history-header">
+                <div class="section-title">📜 历史记录 (<span id="historyCount">0</span>)</div>
+                <button id="clearHistoryBtn" class="btn btn-danger btn-small">清空</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-state">暂无历史记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 系统提示词模板
+        const SYSTEM_PROMPTS = {
+            '朋友': {
+                '道歉': `你是用户的闺蜜或兄弟，语言轻松幽默，可以开玩笑但要真诚。
+要求：
+1. 语言俏皮，带点调侃但不过度
+2. 表达歉意的同时给对方台阶下
+3. 适合朋友之间的相处方式
+4. 回复简洁自然，30字以内`,
+                '表白': `你是用户暗恋对象的朋友，帮助用户向心仪的人表白。
+要求：
+1. 语言俏皮但不失真诚
+2. 既表达心意又不给对方太大压力
+3. 可以暗示但不要太直白
+4. 回复简洁自然，30字以内`,
+                '拒绝': `你是用户的损友，帮助用户委婉拒绝朋友不合理的要求。
+要求：
+1. 语气轻松但态度明确
+2. 给对方留面子，不伤和气
+3. 可以用玩笑的方式表达
+4. 回复简洁自然，30字以内`,
+                '安慰': `你是用户的闺蜜/兄弟，在用户朋友遇到困难时提供安慰。
+要求：
+1. 真诚但不过于沉重
+2. 提供实际的支持和建议
+3. 语言积极向上
+4. 回复简洁自然，30字以内`,
+                '日常': `你是用户的闺蜜/兄弟，进行轻松随意的日常聊天。
+要求：
+1. 语言轻松自然，可以开玩笑
+2. 话题延续性强
+3. 体现朋友间的亲密感
+4. 回复简洁自然，30字以内`,
+                '聊天': `你是用户的闺蜜/兄弟，和用户进行日常闲聊。
+要求：
+1. 语言轻松自然
+2. 适当延续话题
+3. 体现朋友间的默契
+4. 回复简洁自然，30字以内`
+            },
+            '家人': {
+                '道歉': `你是一个温暖贴心的家人，帮助用户向父母或其他家人道歉。
+要求：
+1. 语言真诚，充满悔意
+2. 表达对家人的尊重和爱
+3. 承诺改正错误
+4. 回复简洁自然，30字以内`,
+                '表白': `你是用户的家人，帮助用户向家人表达爱意。
+要求：
+1. 语言温馨真挚
+2. 表达对家人的感激
+3. 适当表达关心
+4. 回复简洁自然，30字以内`,
+                '拒绝': `你是一个孝顺的家人，帮助用户委婉拒绝家人的不合理要求。
+要求：
+1. 语气温和但态度明确
+2. 解释原因并表达歉意
+3. 体现对家人的尊重
+4. 回复简洁自然，30字以内`,
+                '安慰': `你是用户的家人，在家人遇到困难时提供温暖安慰。
+要求：
+1. 语言温暖，充满关爱
+2. 给予实际的支持和陪伴
+3. 传递积极正能量
+4. 回复简洁自然，30字以内`,
+                '日常': `你是用户的家人，进行温馨的家庭日常对话。
+要求：
+1. 语言温馨自然
+2. 体现家人间的关爱
+3. 适当表达关心
+4. 回复简洁自然，30字以内`,
+                '聊天': `你是用户的家人，和用户进行温馨的日常聊天。
+要求：
+1. 语言温馨自然
+2. 体现家人间的亲密
+3. 适当表达关心
+4. 回复简洁自然，30字以内`
+            },
+            '暧昧对象': {
+                '道歉': `你是用户的暧昧对象，在产生矛盾时帮助用户道歉。
+要求：
+1. 语言俏皮但不失诚意
+2. 适当撒娇化解矛盾
+3. 表达对对方的在意
+4. 回复简洁自然，30字以内，略带暧昧感`,
+                '表白': `你是用户的暧昧对象，帮助用户向心仪的人表白。
+要求：
+1. 语言浪漫但不过于直白
+2. 制造暧昧氛围
+3. 保持适当的神秘感
+4. 回复简洁自然，30字以内`,
+                '拒绝': `你是用户的暧昧对象，帮助用户委婉拒绝暧昧对象的邀请。
+要求：
+1. 语气委婉但态度明确
+2. 不伤对方面子
+3. 保持适当的礼貌和距离
+4. 回复简洁自然，30字以内`,
+                '安慰': `你是用户的暧昧对象，在对方情绪低落时提供安慰。
+要求：
+1. 语言温柔细腻
+2. 表达关心和支持
+3. 适当暧昧但不过度
+4. 回复简洁自然，30字以内`,
+                '日常': `你是用户的暧昧对象，进行充满暧昧感的日常对话。
+要求：
+1. 语言温柔略带俏皮
+2. 适当表达想念和在意
+3. 制造甜蜜氛围
+4. 回复简洁自然，30字以内`,
+                '约会': `你是用户的暧昧对象，帮助用户规划或回应暧昧约会。
+要求：
+1. 语言浪漫甜蜜
+2. 表达期待和开心
+3. 适当展现魅力
+4. 回复简洁自然，30字以内`,
+                '聊天': `你是用户的暧昧对象，和用户进行暧昧的日常聊天。
+要求：
+1. 语言温柔略带俏皮
+2. 适当调情但不过度
+3. 保持神秘感和吸引力
+4. 回复简洁自然，30字以内`
+            },
+            '相亲对象': {
+                '道歉': `你是用户的相亲对象，在产生误会时帮助用户道歉。
+要求：
+1. 语言礼貌真诚
+2. 表达歉意和重视
+3. 展现成熟稳重
+4. 回复简洁自然，30字以内`,
+                '表白': `你是用户的相亲对象，帮助用户向相亲对象表达好感。
+要求：
+1. 语言真诚得体
+2. 表达诚意但不过度热情
+3. 展现自己的优点
+4. 回复简洁自然，30字以内`,
+                '拒绝': `你是用户的相亲对象，帮助用户委婉拒绝相亲对象。
+要求：
+1. 语气礼貌温和
+2. 表达感谢和歉意
+3. 不伤对方面子
+4. 回复简洁自然，30字以内`,
+                '安慰': `你是用户的相亲对象，在相亲对象遇到困难时提供安慰。
+要求：
+1. 语言礼貌得体
+2. 表达适度关心
+3. 展现绅士/淑女风度
+4. 回复简洁自然，30字以内`,
+                '日常': `你是用户的相亲对象，进行礼貌得体的日常对话。
+要求：
+1. 语言礼貌自然
+2. 适当展现自己
+3. 保持适度距离
+4. 回复简洁自然，30字以内`,
+                '聊天': `你是用户的相亲对象，和用户进行礼貌的日常聊天。
+要求：
+1. 语言礼貌得体
+2. 适当延续话题
+3. 展现诚意和尊重
+4. 回复简洁自然，30字以内`
+            },
+            '男朋友': {
+                '道歉': `你是用户的男朋友，帮助用户向男朋友道歉。
+要求：
+1. 语言真诚深情
+2. 承认错误，表达悔意
+3. 适当撒娇求原谅
+4. 表达对女友的在意和爱
+5. 回复简洁自然，30字以内`,
+                '表白': `你是用户的男朋友，帮助用户向男朋友表达爱意。
+要求：
+1. 语言浪漫深情
+2. 表达对她的爱和珍视
+3. 可以许下承诺
+4. 回复简洁自然，30字以内`,
+                '拒绝': `你是用户的男朋友，帮助用户委婉拒绝男朋友的要求。
+要求：
+1. 语言温柔但态度明确
+2. 解释原因，求得理解
+3. 表达歉意和爱意
+4. 回复简洁自然，30字以内`,
+                '安慰': `你是用户的男朋友，在男朋友情绪低落时提供安慰。
+要求：
+1. 语言温柔充满爱意
+2. 给予拥抱和安全感
+3. 支持和陪伴
+4. 回复简洁自然，30字以内`,
+                '日常': `你是用户的男朋友，和用户进行甜蜜的日常对话。
+要求：
+1. 语言温柔甜蜜
+2. 适当撒娇和表达爱意
+3. 展现可爱一面
+4. 回复简洁自然，30字以内`,
+                '约会': `你是用户的男朋友，帮助用户规划或回应约会。
+要求：
+1. 语言兴奋期待
+2. 表达对约会的期待
+3. 展现浪漫一面
+4. 回复简洁自然，30字以内`,
+                '聊天': `你是用户的男朋友，和用户进行甜蜜的日常聊天。
+要求：
+1. 语言温柔甜蜜
+2. 适当撒娇和分享
+3. 表达想念和爱意
+4. 回复简洁自然，30字以内`
+            }
+        };
+
+        // DOM元素
+        const roleSelect = document.getElementById('roleSelect');
+        const sceneSelect = document.getElementById('sceneSelect');
+        const dialogueInput = document.getElementById('dialogueInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const promptSection = document.getElementById('promptSection');
+        const promptDisplay = document.getElementById('promptDisplay');
+        const promptLength = document.getElementById('promptLength');
+        const copyPromptBtn = document.getElementById('copyPromptBtn');
+        const copySystemOnlyBtn = document.getElementById('copySystemOnlyBtn');
+        const historyCount = document.getElementById('historyCount');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+        // 初始化
+        function init() {
+            // 加载历史记录
+            loadHistory();
+
+            // 绑定事件
+            generateBtn.addEventListener('click', generatePrompt);
+            copyPromptBtn.addEventListener('click', () => copyPrompt('full'));
+            copySystemOnlyBtn.addEventListener('click', () => copyPrompt('system'));
+            clearHistoryBtn.addEventListener('click', clearHistory);
+        }
+
+        // 生成Prompt
+        function generatePrompt() {
+            const role = roleSelect.value;
+            const scene = sceneSelect.value;
+            const dialogue = dialogueInput.value.trim();
+
+            if (!role) {
+                showError('请选择角色');
+                return;
+            }
+
+            if (!scene) {
+                showError('请选择场景');
+                return;
+            }
+
+            if (!dialogue) {
+                showError('请输入对话内容');
+                return;
+            }
+
+            // 隐藏错误信息
+            hideError();
+
+            try {
+                // 获取系统提示词
+                const systemPrompt = SYSTEM_PROMPTS[role][scene];
+                
+                // 构建完整prompt
+                const fullPrompt = buildFullPrompt(role, scene, dialogue, systemPrompt);
+                
+                // 显示prompt
+                displayPrompt(fullPrompt, systemPrompt);
+                
+                // 保存到历史记录
+                saveToHistory(role, scene, dialogue, fullPrompt, systemPrompt);
+                
+            } catch (error) {
+                console.error('生成prompt失败:', error);
+                showError(`生成prompt失败: ${error.message}`);
+            }
+        }
+
+        // 构建完整prompt
+        function buildFullPrompt(role, scene, dialogue, systemPrompt) {
+            return `[系统提示]
+${systemPrompt}
+
+[用户输入]
+角色：${role}
+场景：${scene}
+对话：${dialogue}
+
+[任务要求]
+请根据系统提示和用户输入，生成10条高情商回复，每条回复不超过30字，回复格式为：
+1. 第一条回复
+2. 第二条回复
+...
+10. 第十条回复`;
+        }
+
+        // 显示prompt
+        function displayPrompt(fullPrompt, systemPrompt) {
+            // 显示完整prompt
+            promptDisplay.textContent = fullPrompt;
+            
+            // 更新字符数
+            const charCount = fullPrompt.length;
+            promptLength.textContent = `${charCount} 字符`;
+            
+            // 显示prompt区域
+            promptSection.style.display = 'block';
+            
+            // 保存当前prompt到临时变量
+            window.currentFullPrompt = fullPrompt;
+            window.currentSystemPrompt = systemPrompt;
+        }
+
+        // 复制prompt
+        function copyPrompt(type) {
+            let textToCopy = '';
+            
+            if (type === 'full') {
+                textToCopy = window.currentFullPrompt || promptDisplay.textContent;
+            } else if (type === 'system') {
+                textToCopy = window.currentSystemPrompt || '';
+            }
+            
+            if (!textToCopy) {
+                showError('没有可复制的内容');
+                return;
+            }
+            
+            copyToClipboard(textToCopy);
+            
+            // 临时改变按钮文本
+            const originalText = type === 'full' 
+                ? copyPromptBtn.innerHTML 
+                : copySystemOnlyBtn.innerHTML;
+            
+            const button = type === 'full' ? copyPromptBtn : copySystemOnlyBtn;
+            
+            button.innerHTML = '✅ 已复制';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 2000);
+        }
+
+        // 保存到历史记录
+        function saveToHistory(role, scene, dialogue, fullPrompt, systemPrompt) {
+            // 获取现有历史记录
+            let history = JSON.parse(localStorage.getItem('eq_prompt_history') || '[]');
+            
+            // 创建新记录
+            const newRecord = {
+                id: generateId(),
+                timestamp: Date.now(),
+                role: role,
+                scene: scene,
+                input: dialogue,
+                fullPrompt: fullPrompt,
+                systemPrompt: systemPrompt
+            };
+            
+            // 添加到历史记录开头
+            history.unshift(newRecord);
+            
+            // 限制最多保存20条记录
+            if (history.length > 20) {
+                history = history.slice(0, 20);
+            }
+            
+            // 保存回localStorage
+            localStorage.setItem('eq_prompt_history', JSON.stringify(history));
+            
+            // 更新UI
+            loadHistory();
+        }
+
+        // 加载历史记录
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('eq_prompt_history') || '[]');
+            historyCount.textContent = history.length;
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-state">暂无历史记录</div>';
+                return;
+            }
+            
+            historyList.innerHTML = '';
+            
+            history.forEach(record => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const date = new Date(record.timestamp);
+                const timeString = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                
+                historyItem.innerHTML = `
+                    <div class="history-info">
+                        <div class="history-time">${timeString}</div>
+                        <div class="history-role-scene">${record.role} · ${record.scene}</div>
+                        <div class="history-input">${record.input}</div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn btn-secondary btn-small view-history-btn" data-id="${record.id}">查看</button>
+                        <button class="btn btn-danger btn-small delete-history-btn" data-id="${record.id}">删除</button>
+                    </div>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+            
+            // 绑定查看和删除按钮事件
+            document.querySelectorAll('.view-history-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    viewHistoryItem(id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-history-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    deleteHistoryItem(id);
+                });
+            });
+        }
+
+        // 查看历史记录项
+        function viewHistoryItem(id) {
+            const history = JSON.parse(localStorage.getItem('eq_prompt_history') || '[]');
+            const record = history.find(item => item.id === id);
+            
+            if (record) {
+                // 填充表单
+                roleSelect.value = record.role;
+                sceneSelect.value = record.scene;
+                dialogueInput.value = record.input;
+                
+                // 显示prompt
+                displayPrompt(record.fullPrompt, record.systemPrompt);
+                
+                // 滚动到prompt区域
+                promptSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // 删除历史记录项
+        function deleteHistoryItem(id) {
+            let history = JSON.parse(localStorage.getItem('eq_prompt_history') || '[]');
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem('eq_prompt_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        // 清空历史记录
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？此操作不可撤销。')) {
+                localStorage.removeItem('eq_prompt_history');
+                loadHistory();
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // 隐藏错误信息
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
